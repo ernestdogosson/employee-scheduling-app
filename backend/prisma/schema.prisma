@@ -6,3 +6,56 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum Role {
+  EMPLOYER
+  EMPLOYEE
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  loginCode String    @unique
+  password  String
+  role      Role
+  createdAt DateTime  @default(now())
+  employee  Employee?
+}
+
+model Employee {
+  id              Int             @id @default(autoincrement())
+  firstName       String
+  lastName        String
+  userId          Int             @unique
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  availabilities  Availability[]
+  scheduleEntries ScheduleEntry[]
+}
+
+model Shift {
+  id              Int             @id @default(autoincrement())
+  name            String          @unique
+  availabilities  Availability[]
+  scheduleEntries ScheduleEntry[]
+}
+
+model Availability {
+  id         Int      @id @default(autoincrement())
+  date       DateTime @db.Date
+  employeeId Int
+  shiftId    Int
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  shift      Shift    @relation(fields: [shiftId], references: [id])
+
+  @@unique([employeeId, date, shiftId])
+}
+
+model ScheduleEntry {
+  id         Int      @id @default(autoincrement())
+  date       DateTime @db.Date
+  employeeId Int
+  shiftId    Int
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  shift      Shift    @relation(fields: [shiftId], references: [id])
+
+  @@unique([employeeId, date, shiftId])
+}
