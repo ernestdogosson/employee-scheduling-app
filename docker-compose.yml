@@ -11,7 +11,6 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
 
-  # dev-only GUI for the database. safe to remove at end of project.
   pgadmin:
     image: dpage/pgadmin4
     restart: unless-stopped
