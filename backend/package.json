@@ -4,8 +4,21 @@
   "description": "Employee Scheduling API backend",
   "main": "dist/server.js",
   "type": "module",
-  "scripts": {},
+  "scripts": {
+    "dev": "node --watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "typecheck": "tsc --noEmit"
+  },
   "keywords": [],
   "author": "Ernest Dogo",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.6.0",
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  }
 }
