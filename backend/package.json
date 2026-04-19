@@ -1,0 +1,11 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "Employee Scheduling API backend",
+  "main": "dist/server.js",
+  "type": "module",
+  "scripts": {},
+  "keywords": [],
+  "author": "Ernest Dogo",
+  "license": "ISC"
+}
