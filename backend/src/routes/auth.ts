@@ -2,6 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcrypt";
 import { prisma } from "../db.ts";
 import { signToken } from "../auth/jwt.ts";
+import { requireAuth } from "../middleware/requireAuth.ts";
 
 export const authRouter = Router();
 
@@ -25,4 +26,9 @@ authRouter.post("/login", async (req, res) => {
   }
 
   res.status(401).json({ error: "Invalid login code" });
+});
+
+// GET /auth/me — who is the current user
+authRouter.get("/me", requireAuth, (req, res) => {
+  res.json({ user: req.user });
 });
