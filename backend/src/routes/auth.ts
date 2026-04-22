@@ -1,5 +1,4 @@
 import { Router } from "express";
-import bcrypt from "bcrypt";
 import { z } from "zod";
 import { prisma } from "../db.ts";
 import { signToken } from "../auth/jwt.ts";
@@ -17,18 +16,14 @@ const LoginSchema = z.object({
 authRouter.post("/login", validate(LoginSchema), async (req, res) => {
   const { loginCode } = req.body;
 
-  // scan users since each hash has a different salt
-  const users = await prisma.user.findMany();
-  for (const user of users) {
-    const match = await bcrypt.compare(loginCode, user.loginCode);
-    if (match) {
-      const token = signToken({ sub: user.id, role: user.role });
-      res.json({ token });
-      return;
-    }
+  const user = await prisma.user.findUnique({ where: { loginCode } });
+  if (!user) {
+    res.status(401).json({ error: "Invalid login code" });
+    return;
   }
 
-  res.status(401).json({ error: "Invalid login code" });
+  const token = signToken({ sub: user.id, role: user.role });
+  res.json({ token });
 });
 
 // GET /auth/me — who is the current user
