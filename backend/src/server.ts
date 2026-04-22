@@ -3,6 +3,7 @@ import express from "express";
 import { authRouter } from "./routes/auth.ts";
 import { availabilityRouter } from "./routes/availability.ts";
 import { employeesRouter } from "./routes/employees.ts";
+import { scheduleRouter } from "./routes/schedule.ts";
 
 const app = express();
 
@@ -15,6 +16,7 @@ app.get("/", (_req, res) => {
 app.use("/auth", authRouter);
 app.use("/employees", employeesRouter);
 app.use("/availability", availabilityRouter);
+app.use("/schedule", scheduleRouter);
 
 const PORT = Number(process.env.PORT) || 3000;
 
