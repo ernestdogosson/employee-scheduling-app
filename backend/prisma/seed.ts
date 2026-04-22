@@ -29,6 +29,17 @@ async function main() {
     });
   }
 
+  // temp employee for RBAC testing, remove once POST /employees exists
+  const existingEmployee = await prisma.user.findFirst({
+    where: { role: "EMPLOYEE" },
+  });
+  if (!existingEmployee) {
+    const hashedCode = await bcrypt.hash("2000", BCRYPT_ROUNDS);
+    await prisma.user.create({
+      data: { loginCode: hashedCode, role: "EMPLOYEE" },
+    });
+  }
+
   console.log("Seed complete");
 }
 
