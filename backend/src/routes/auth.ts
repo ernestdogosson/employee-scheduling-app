@@ -1,19 +1,21 @@
 import { Router } from "express";
 import bcrypt from "bcrypt";
+import { z } from "zod";
 import { prisma } from "../db.ts";
 import { signToken } from "../auth/jwt.ts";
 import { requireAuth } from "../middleware/requireAuth.ts";
 import { requireRole } from "../middleware/requireRole.ts";
+import { validate } from "../middleware/validate.ts";
 
 export const authRouter = Router();
 
+const LoginSchema = z.object({
+  loginCode: z.string().min(1),
+});
+
 // POST /auth/login
-authRouter.post("/login", async (req, res) => {
-  const { loginCode } = req.body ?? {};
-  if (typeof loginCode !== "string") {
-    res.status(400).json({ error: "loginCode required" });
-    return;
-  }
+authRouter.post("/login", validate(LoginSchema), async (req, res) => {
+  const { loginCode } = req.body;
 
   // scan users since each hash has a different salt
   const users = await prisma.user.findMany();
