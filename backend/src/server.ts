@@ -1,6 +1,8 @@
 import "dotenv/config";
 import express from "express";
 import { authRouter } from "./routes/auth.ts";
+import { availabilityRouter } from "./routes/availability.ts";
+import { employeesRouter } from "./routes/employees.ts";
 
 const app = express();
 
@@ -11,6 +13,8 @@ app.get("/", (_req, res) => {
 });
 
 app.use("/auth", authRouter);
+app.use("/employees", employeesRouter);
+app.use("/availability", availabilityRouter);
 
 const PORT = Number(process.env.PORT) || 3000;
 
