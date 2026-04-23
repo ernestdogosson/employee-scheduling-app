@@ -31,7 +31,7 @@ export default function Login() {
         loginCode,
       });
       setToken(data.token);
-      navigate("/");
+      navigate("/dashboard");
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
