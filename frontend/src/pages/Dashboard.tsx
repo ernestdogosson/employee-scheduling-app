@@ -2,12 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { api, clearToken, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import EmployerView from "@/components/EmployerView";
 
 type MeResponse = {
   user: {
@@ -40,26 +35,29 @@ export default function Dashboard() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-6">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Dashboard</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          {me ? (
-            <div className="text-sm space-y-1">
-              <p>User id: {me.sub}</p>
-              <p>Role: {me.role}</p>
-            </div>
-          ) : (
-            !error && <p className="text-sm text-muted-foreground">Loading...</p>
-          )}
-          <Button variant="outline" onClick={handleLogout} className="w-full">
+    <main className="min-h-screen px-6 py-8">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-semibold">Dashboard</h1>
+          <Button variant="outline" onClick={handleLogout}>
             Log out
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+
+        {error && <p className="text-sm text-destructive">{error}</p>}
+
+        {!me && !error && (
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        )}
+
+        {me?.role === "EMPLOYER" && <EmployerView />}
+
+        {me?.role === "EMPLOYEE" && (
+          <p className="text-sm text-muted-foreground">
+            Employee view coming soon.
+          </p>
+        )}
+      </div>
     </main>
   );
 }
