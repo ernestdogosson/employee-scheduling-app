@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 
 export default function App() {
@@ -7,7 +8,9 @@ export default function App() {
         <h1 className="text-4xl font-semibold tracking-tight">Scheduler</h1>
         <p className="text-muted-foreground">Employee scheduling, simplified.</p>
       </div>
-      <Button>Get started</Button>
+      <Button asChild>
+        <Link to="/login">Sign in</Link>
+      </Button>
     </main>
   );
 }
