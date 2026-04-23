@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../db.ts";
-import { Prisma } from "../generated/prisma/client.ts";
 import { requireAuth } from "../middleware/requireAuth.ts";
 import { requireRole } from "../middleware/requireRole.ts";
 import { validate } from "../middleware/validate.ts";
@@ -54,23 +53,15 @@ employeesRouter.post(
   async (req, res) => {
     const { firstName, lastName, loginCode } = req.body;
 
-    try {
-      const employee = await prisma.$transaction(async (tx) => {
-        const user = await tx.user.create({
-          data: { loginCode, role: "EMPLOYEE" },
-        });
-        return tx.employee.create({
-          data: { firstName, lastName, userId: user.id },
-        });
+    const employee = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: { loginCode, role: "EMPLOYEE" },
       });
+      return tx.employee.create({
+        data: { firstName, lastName, userId: user.id },
+      });
+    });
 
-      res.status(201).json({ employee });
-    } catch (err) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
-        res.status(409).json({ error: "Login code already in use" });
-        return;
-      }
-      throw err;
-    }
+    res.status(201).json({ employee });
   },
 );
