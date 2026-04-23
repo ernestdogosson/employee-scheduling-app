@@ -59,6 +59,25 @@ employeesRouter.get("/:id", requireAuth, async (req, res) => {
   res.json({ employee });
 });
 
+// DELETE /employees/:id
+employeesRouter.delete("/:id", requireAuth, requireRole("EMPLOYER"), async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+
+  const employee = await prisma.employee.findUnique({ where: { id } });
+  if (!employee) {
+    res.status(404).json({ error: "Employee not found" });
+    return;
+  }
+
+  // delete user; cascade wipes employee + availability + schedule
+  await prisma.user.delete({ where: { id: employee.userId } });
+  res.status(204).end();
+});
+
 // POST /employees
 employeesRouter.post(
   "/",
