@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import cors from "cors";
 import { authRouter } from "./routes/auth.ts";
 import { availabilityRouter } from "./routes/availability.ts";
 import { employeesRouter } from "./routes/employees.ts";
@@ -10,6 +11,7 @@ import { requestLogger } from "./middleware/requestLogger.ts";
 const app = express();
 
 app.use(requestLogger);
+app.use(cors({ origin: "http://localhost:5173" }));
 app.use(express.json());
 
 app.get("/", (_req, res) => {
