@@ -10,6 +10,8 @@ export const employeesRouter = Router();
 const CreateEmployeeSchema = z.object({
   firstName: z.string().min(1),
   lastName: z.string().min(1),
+  email: z.email(),
+  phone: z.string().min(1).optional(),
   loginCode: z.string().regex(/^\d{4}$/, "loginCode must be 4 digits"),
 });
 
@@ -51,14 +53,14 @@ employeesRouter.post(
   requireRole("EMPLOYER"),
   validate(CreateEmployeeSchema),
   async (req, res) => {
-    const { firstName, lastName, loginCode } = req.body;
+    const { firstName, lastName, email, phone, loginCode } = req.body;
 
     const employee = await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
-        data: { loginCode, role: "EMPLOYEE" },
+        data: { email, loginCode, role: "EMPLOYEE" },
       });
       return tx.employee.create({
-        data: { firstName, lastName, userId: user.id },
+        data: { firstName, lastName, phone, userId: user.id },
       });
     });
 
