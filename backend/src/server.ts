@@ -5,6 +5,7 @@ import { authRouter } from "./routes/auth.ts";
 import { availabilityRouter } from "./routes/availability.ts";
 import { employeesRouter } from "./routes/employees.ts";
 import { scheduleRouter } from "./routes/schedule.ts";
+import { shiftsRouter } from "./routes/shifts.ts";
 import { errorHandler } from "./middleware/errorHandler.ts";
 import { requestLogger } from "./middleware/requestLogger.ts";
 
@@ -22,6 +23,7 @@ app.use("/auth", authRouter);
 app.use("/employees", employeesRouter);
 app.use("/availability", availabilityRouter);
 app.use("/schedule", scheduleRouter);
+app.use("/shifts", shiftsRouter);
 
 app.use(errorHandler);
 
