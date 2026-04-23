@@ -19,6 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import ScheduleEditor from "@/components/ScheduleEditor";
 
 type Employee = {
   id: number;
@@ -41,6 +42,7 @@ export default function EmployerView() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [listError, setListError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [scheduleVersion, setScheduleVersion] = useState(0);
 
   // create form
   const [firstName, setFirstName] = useState("");
@@ -74,6 +76,19 @@ export default function EmployerView() {
     setFormError(null);
   }
 
+  async function handleDelete(emp: Employee) {
+    if (!window.confirm(`Delete ${emp.firstName} ${emp.lastName}? This cannot be undone.`)) {
+      return;
+    }
+    try {
+      await api.delete(`/employees/${emp.id}`);
+      await loadEmployees();
+      setScheduleVersion((v) => v + 1);
+    } catch (err) {
+      setListError(err instanceof Error ? err.message : "Delete failed");
+    }
+  }
+
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     setFormError(null);
@@ -101,7 +116,8 @@ export default function EmployerView() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
+      <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Employees</h2>
         <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) resetForm(); }}>
@@ -162,12 +178,13 @@ export default function EmployerView() {
             <TableHead>Email</TableHead>
             <TableHead>Login code</TableHead>
             <TableHead>Phone</TableHead>
+            <TableHead></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {employees.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="text-muted-foreground text-center">
+              <TableCell colSpan={6} className="text-muted-foreground text-center">
                 No employees yet
               </TableCell>
             </TableRow>
@@ -179,11 +196,23 @@ export default function EmployerView() {
                 <TableCell>{emp.user.email}</TableCell>
                 <TableCell>{emp.user.loginCode}</TableCell>
                 <TableCell>{emp.phone ?? "—"}</TableCell>
+                <TableCell>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDelete(emp)}
+                  >
+                    Delete
+                  </Button>
+                </TableCell>
               </TableRow>
             ))
           )}
         </TableBody>
       </Table>
+      </div>
+
+      <ScheduleEditor key={scheduleVersion} />
     </div>
   );
 }
