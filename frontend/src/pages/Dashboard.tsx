@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { api, clearToken, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import EmployerView from "@/components/EmployerView";
+import EmployeeView from "@/components/EmployeeView";
 
 type MeResponse = {
   user: {
@@ -52,11 +53,7 @@ export default function Dashboard() {
 
         {me?.role === "EMPLOYER" && <EmployerView />}
 
-        {me?.role === "EMPLOYEE" && (
-          <p className="text-sm text-muted-foreground">
-            Employee view coming soon.
-          </p>
-        )}
+        {me?.role === "EMPLOYEE" && <EmployeeView />}
       </div>
     </main>
   );

@@ -24,6 +24,18 @@ employeesRouter.get("/", requireAuth, requireRole("EMPLOYER"), async (_req, res)
   res.json({ employees });
 });
 
+// GET /employees/me
+employeesRouter.get("/me", requireAuth, async (req, res) => {
+  const employee = await prisma.employee.findUnique({
+    where: { userId: req.user!.sub },
+  });
+  if (!employee) {
+    res.status(404).json({ error: "No employee profile for this user" });
+    return;
+  }
+  res.json({ employee });
+});
+
 // GET /employees/:id
 employeesRouter.get("/:id", requireAuth, async (req, res) => {
   const id = Number(req.params.id);
