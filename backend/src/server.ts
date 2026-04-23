@@ -5,9 +5,11 @@ import { availabilityRouter } from "./routes/availability.ts";
 import { employeesRouter } from "./routes/employees.ts";
 import { scheduleRouter } from "./routes/schedule.ts";
 import { errorHandler } from "./middleware/errorHandler.ts";
+import { requestLogger } from "./middleware/requestLogger.ts";
 
 const app = express();
 
+app.use(requestLogger);
 app.use(express.json());
 
 app.get("/", (_req, res) => {
