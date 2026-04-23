@@ -9,16 +9,17 @@ import { validate } from "../middleware/validate.ts";
 export const authRouter = Router();
 
 const LoginSchema = z.object({
-  loginCode: z.string().min(1),
+  email: z.email(),
+  loginCode: z.string().regex(/^\d{4}$/, "loginCode must be 4 digits"),
 });
 
 // POST /auth/login
 authRouter.post("/login", validate(LoginSchema), async (req, res) => {
-  const { loginCode } = req.body;
+  const { email, loginCode } = req.body;
 
-  const user = await prisma.user.findUnique({ where: { loginCode } });
-  if (!user) {
-    res.status(401).json({ error: "Invalid login code" });
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user || user.loginCode !== loginCode) {
+    res.status(401).json({ error: "Invalid email or login code" });
     return;
   }
 

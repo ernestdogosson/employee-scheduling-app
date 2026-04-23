@@ -21,17 +21,11 @@ async function main() {
   });
   if (!existingEmployer) {
     await prisma.user.create({
-      data: { loginCode: "1000", role: "EMPLOYER" },
-    });
-  }
-
-  // temp employee for RBAC testing, remove once POST /employees exists
-  const existingEmployee = await prisma.user.findFirst({
-    where: { role: "EMPLOYEE" },
-  });
-  if (!existingEmployee) {
-    await prisma.user.create({
-      data: { loginCode: "2000", role: "EMPLOYEE" },
+      data: {
+        email: "employer@scheduler.local",
+        loginCode: "1000",
+        role: "EMPLOYER",
+      },
     });
   }
 
