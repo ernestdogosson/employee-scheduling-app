@@ -19,6 +19,7 @@ const CreateEmployeeSchema = z.object({
 employeesRouter.get("/", requireAuth, requireRole("EMPLOYER"), async (_req, res) => {
   const employees = await prisma.employee.findMany({
     orderBy: { id: "asc" },
+    include: { user: { select: { email: true, loginCode: true } } },
   });
   res.json({ employees });
 });
