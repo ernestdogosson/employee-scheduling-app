@@ -79,32 +79,18 @@ availabilityRouter.put(
 
     const { availabilities } = req.body;
 
-    try {
-      await prisma.$transaction(async (tx) => {
-        await tx.availability.deleteMany({ where: { employeeId } });
-        if (availabilities.length > 0) {
-          await tx.availability.createMany({
-            data: availabilities.map((a: { date: string; shiftId: number }) => ({
-              employeeId,
-              date: new Date(a.date),
-              shiftId: a.shiftId,
-            })),
-          });
-        }
-      });
-    } catch (err) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError) {
-        if (err.code === "P2003") {
-          res.status(400).json({ error: "Invalid shiftId" });
-          return;
-        }
-        if (err.code === "P2002") {
-          res.status(400).json({ error: "Duplicate (date, shiftId) in request" });
-          return;
-        }
+    await prisma.$transaction(async (tx) => {
+      await tx.availability.deleteMany({ where: { employeeId } });
+      if (availabilities.length > 0) {
+        await tx.availability.createMany({
+          data: availabilities.map((a: { date: string; shiftId: number }) => ({
+            employeeId,
+            date: new Date(a.date),
+            shiftId: a.shiftId,
+          })),
+        });
       }
-      throw err;
-    }
+    });
 
     const saved = await prisma.availability.findMany({
       where: { employeeId },

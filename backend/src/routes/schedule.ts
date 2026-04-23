@@ -86,34 +86,20 @@ scheduleRouter.put(
     const fromDate = new Date(from);
     const toDate = new Date(to);
 
-    try {
-      await prisma.$transaction(async (tx) => {
-        await tx.scheduleEntry.deleteMany({
-          where: { date: { gte: fromDate, lte: toDate } },
-        });
-        if (entries.length > 0) {
-          await tx.scheduleEntry.createMany({
-            data: entries.map((e) => ({
-              employeeId: e.employeeId,
-              date: new Date(e.date),
-              shiftId: e.shiftId,
-            })),
-          });
-        }
+    await prisma.$transaction(async (tx) => {
+      await tx.scheduleEntry.deleteMany({
+        where: { date: { gte: fromDate, lte: toDate } },
       });
-    } catch (err) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError) {
-        if (err.code === "P2003") {
-          res.status(400).json({ error: "Invalid employeeId or shiftId" });
-          return;
-        }
-        if (err.code === "P2002") {
-          res.status(400).json({ error: "Duplicate (employee, date, shift) in request" });
-          return;
-        }
+      if (entries.length > 0) {
+        await tx.scheduleEntry.createMany({
+          data: entries.map((e) => ({
+            employeeId: e.employeeId,
+            date: new Date(e.date),
+            shiftId: e.shiftId,
+          })),
+        });
       }
-      throw err;
-    }
+    });
 
     const saved = await prisma.scheduleEntry.findMany({
       where: { date: { gte: fromDate, lte: toDate } },
