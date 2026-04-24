@@ -31,6 +31,14 @@ function daysBetween(from: string, to: string): string[] {
   return out;
 }
 
+function isPastISO(iso: string): boolean {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const [y, m, day] = iso.split("-").map(Number);
+  const d = new Date(y, m - 1, day);
+  return d < today;
+}
+
 function makeKey(date: string, shiftId: number) {
   return `${date}|${shiftId}`;
 }
@@ -145,6 +153,7 @@ export default function ScheduleEditor({ from, to }: Props) {
               {days.map((date) => {
                 const assigned = assignments.get(makeKey(date, shift.id)) ?? new Set<number>();
                 const available = employees.filter((e) => !assigned.has(e.id));
+                const past = isPastISO(date);
                 return (
                   <TableCell key={date} className="align-top">
                     <div className="flex flex-wrap gap-1 mb-1">
@@ -154,18 +163,20 @@ export default function ScheduleEditor({ from, to }: Props) {
                           className="inline-flex items-center gap-1 rounded bg-muted px-2 py-0.5 text-xs"
                         >
                           {nameOf(empId)}
-                          <button
-                            type="button"
-                            onClick={() => removeEmployee(date, shift.id, empId)}
-                            className="text-muted-foreground hover:text-foreground"
-                            aria-label="Remove"
-                          >
-                            ×
-                          </button>
+                          {!past && (
+                            <button
+                              type="button"
+                              onClick={() => removeEmployee(date, shift.id, empId)}
+                              className="text-muted-foreground hover:text-foreground"
+                              aria-label="Remove"
+                            >
+                              ×
+                            </button>
+                          )}
                         </span>
                       ))}
                     </div>
-                    {available.length > 0 && (
+                    {available.length > 0 && !past && (
                       <select
                         className="text-xs border rounded px-1 py-0.5 bg-background"
                         value=""

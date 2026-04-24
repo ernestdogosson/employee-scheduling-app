@@ -65,6 +65,12 @@ function isToday(d: Date): boolean {
   );
 }
 
+function isPast(d: Date): boolean {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return d < today;
+}
+
 function makeKey(date: string, shiftId: number) {
   return `${date}|${shiftId}`;
 }
@@ -311,6 +317,7 @@ export default function EmployeeView() {
               {weekDates.map((d, i) => {
                 const date = isoDate(d);
                 const today = isToday(d);
+                const past = isPast(d);
                 return (
                   <TableRow key={date} className={today ? "bg-accent/40" : ""}>
                     <TableCell>
@@ -328,9 +335,11 @@ export default function EmployeeView() {
                       return (
                         <TableCell key={s.id} className="text-center">
                           <button
+                            disabled={past}
                             onClick={() => toggle(date, s.id)}
                             className={cn(
                               "mx-auto h-8 w-8 rounded-full border-2 transition-colors",
+                              past && "cursor-not-allowed opacity-40",
                               on
                                 ? `${shiftDot(s.name)} border-transparent`
                                 : "border-muted-foreground/30 hover:border-foreground/60",
