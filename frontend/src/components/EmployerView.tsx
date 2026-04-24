@@ -19,7 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import ScheduleEditor from "@/components/ScheduleEditor";
+import ScheduleGrid from "@/components/ScheduleGrid";
 
 type Employee = {
   id: number;
@@ -212,7 +212,7 @@ export default function EmployerView() {
       </Table>
       </div>
 
-      <ScheduleEditor key={scheduleVersion} />
+      <ScheduleGrid key={scheduleVersion} />
     </div>
   );
 }
