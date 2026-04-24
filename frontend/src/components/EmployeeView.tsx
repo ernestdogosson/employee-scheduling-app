@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 type Shift = { id: number; name: string };
 type Employee = { id: number; firstName: string; lastName: string };
@@ -21,6 +22,42 @@ type ScheduleEntry = {
 };
 
 const DAYS_AHEAD = 7;
+const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+const SHIFT_COLORS: Record<string, string> = {
+  morning: "bg-amber-100 text-amber-900 border-amber-200",
+  afternoon: "bg-sky-100 text-sky-900 border-sky-200",
+  night: "bg-indigo-100 text-indigo-900 border-indigo-200",
+};
+
+function shiftColor(name: string): string {
+  return (
+    SHIFT_COLORS[name.toLowerCase()] ??
+    "bg-muted text-foreground border-border"
+  );
+}
+
+function startOfWeek(d: Date): Date {
+  const copy = new Date(d);
+  copy.setHours(0, 0, 0, 0);
+  const dow = copy.getDay();
+  const diff = (dow + 6) % 7;
+  copy.setDate(copy.getDate() - diff);
+  return copy;
+}
+
+function addDays(d: Date, n: number): Date {
+  const copy = new Date(d);
+  copy.setDate(copy.getDate() + n);
+  return copy;
+}
+
+function isoDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 
 function nextDays(n: number): string[] {
   const out: string[] = [];
@@ -31,10 +68,6 @@ function nextDays(n: number): string[] {
     out.push(d.toISOString().slice(0, 10));
   }
   return out;
-}
-
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
 }
 
 function makeKey(date: string, shiftId: number) {
@@ -50,10 +83,20 @@ export default function EmployeeView() {
   const [saving, setSaving] = useState(false);
   const [savedNote, setSavedNote] = useState<string | null>(null);
 
-  const days = nextDays(DAYS_AHEAD);
+  const [monday, setMonday] = useState<Date>(() => startOfWeek(new Date()));
+
+  const weekDates = useMemo(
+    () => Array.from({ length: 7 }, (_, i) => addDays(monday, i)),
+    [monday],
+  );
+
+  const from = isoDate(weekDates[0]);
+  const to = isoDate(weekDates[6]);
+
+  const availDays = nextDays(DAYS_AHEAD);
 
   useEffect(() => {
-    async function load() {
+    async function loadInitial() {
       try {
         const [shiftsData, meData] = await Promise.all([
           api.get<{ shifts: Shift[] }>("/shifts"),
@@ -62,28 +105,44 @@ export default function EmployeeView() {
         setShifts(shiftsData.shifts);
         setMe(meData.employee);
 
-        const [availData, scheduleData] = await Promise.all([
-          api.get<{ availabilities: Availability[] }>(
-            `/availability/${meData.employee.id}`,
-          ),
-          api.get<{ entries: ScheduleEntry[] }>(
-            `/schedule?from=${todayISO()}`,
-          ),
-        ]);
-
+        const availData = await api.get<{ availabilities: Availability[] }>(
+          `/availability/${meData.employee.id}`,
+        );
         const initial = new Set<string>();
         for (const a of availData.availabilities) {
-          // backend returns ISO datetime; trim to YYYY-MM-DD
           initial.add(makeKey(a.date.slice(0, 10), a.shiftId));
         }
         setPicked(initial);
-        setSchedule(scheduleData.entries);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load");
       }
     }
-    load();
+    loadInitial();
   }, []);
+
+  useEffect(() => {
+    async function loadSchedule() {
+      try {
+        const data = await api.get<{ entries: ScheduleEntry[] }>(
+          `/schedule?from=${from}&to=${to}`,
+        );
+        setSchedule(data.entries);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load schedule");
+      }
+    }
+    loadSchedule();
+  }, [from, to]);
+
+  const entryByDate = useMemo(() => {
+    const map = new Map<string, ScheduleEntry[]>();
+    for (const e of schedule) {
+      const date = e.date.slice(0, 10);
+      if (!map.has(date)) map.set(date, []);
+      map.get(date)!.push(e);
+    }
+    return map;
+  }, [schedule]);
 
   function toggle(date: string, shiftId: number) {
     setPicked((prev) => {
@@ -115,33 +174,81 @@ export default function EmployeeView() {
     }
   }
 
+  function rangeLabel() {
+    const startLabel = weekDates[0].toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+    });
+    const endLabel = weekDates[6].toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+    });
+    return `${startLabel} – ${endLabel}`;
+  }
+
   if (error) return <p className="text-sm text-destructive">{error}</p>;
   if (!me) return <p className="text-sm text-muted-foreground">Loading...</p>;
 
   return (
     <div className="space-y-8">
-      <div>
-        <h2 className="text-lg font-semibold mb-3">My schedule</h2>
-        {schedule.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No upcoming shifts.</p>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Shift</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {schedule.map((e) => (
-                <TableRow key={e.id}>
-                  <TableCell>{e.date.slice(0, 10)}</TableCell>
-                  <TableCell>{e.shift.name}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold">My schedule</h2>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setMonday(addDays(monday, -7))}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setMonday(startOfWeek(new Date()))}
+          >
+            Today
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setMonday(addDays(monday, 7))}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <span className="text-sm text-muted-foreground ml-2">
+            {rangeLabel()}
+          </span>
+        </div>
+        <div className="grid grid-cols-7 border rounded-md overflow-hidden text-sm">
+          {weekDates.map((d, i) => (
+            <div
+              key={`h-${i}`}
+              className="bg-muted/50 border-b border-r last:border-r-0 p-2 text-center"
+            >
+              <div className="font-medium">{DAY_LABELS[i]}</div>
+              <div className="text-muted-foreground text-xs">{d.getDate()}</div>
+            </div>
+          ))}
+          {weekDates.map((d, i) => {
+            const date = isoDate(d);
+            const cellEntries = entryByDate.get(date) ?? [];
+            return (
+              <div
+                key={`c-${i}`}
+                className="border-r last:border-r-0 p-1 min-h-[80px] space-y-1"
+              >
+                {cellEntries.map((e) => (
+                  <div
+                    key={e.id}
+                    className={`rounded border px-1.5 py-0.5 text-xs ${shiftColor(e.shift.name)}`}
+                  >
+                    {e.shift.name}
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div>
@@ -164,7 +271,7 @@ export default function EmployeeView() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {days.map((date) => (
+            {availDays.map((date) => (
               <TableRow key={date}>
                 <TableCell>{date}</TableCell>
                 {shifts.map((s) => (
