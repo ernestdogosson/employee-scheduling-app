@@ -189,7 +189,7 @@ export default function ScheduleEditor({ from, to }: Props) {
           ))}
         </TableBody>
       </Table>
-      <DialogFooter className="sm:items-center">
+      <DialogFooter className="sm:items-center" showCloseButton>
         {savedNote && (
           <p className="text-sm text-muted-foreground">{savedNote}</p>
         )}

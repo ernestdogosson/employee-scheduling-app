@@ -55,7 +55,7 @@ export default function DashboardShell() {
 
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-14 border-b flex items-center px-6">
-          <h1 className="text-lg font-semibold">Dashboard</h1>
+          <h1 className="text-lg font-semibold">Schedule</h1>
         </header>
         <main className="flex-1 overflow-auto">
           <Outlet />
