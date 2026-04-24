@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { DialogFooter } from "@/components/ui/dialog";
 
 type Shift = { id: number; name: string };
 type Employee = { id: number; firstName: string; lastName: string };
@@ -19,15 +20,13 @@ type ScheduleEntry = {
   employeeId: number;
 };
 
-const DAYS_AHEAD = 7;
-
-function nextDays(n: number): string[] {
+function daysBetween(from: string, to: string): string[] {
   const out: string[] = [];
-  const today = new Date();
-  for (let i = 0; i < n; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
+  const d = new Date(from + "T00:00:00Z");
+  const end = new Date(to + "T00:00:00Z");
+  while (d <= end) {
     out.push(d.toISOString().slice(0, 10));
+    d.setUTCDate(d.getUTCDate() + 1);
   }
   return out;
 }
@@ -36,7 +35,9 @@ function makeKey(date: string, shiftId: number) {
   return `${date}|${shiftId}`;
 }
 
-export default function ScheduleEditor() {
+type Props = { from: string; to: string };
+
+export default function ScheduleEditor({ from, to }: Props) {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [assignments, setAssignments] = useState<Map<string, Set<number>>>(new Map());
@@ -44,9 +45,7 @@ export default function ScheduleEditor() {
   const [saving, setSaving] = useState(false);
   const [savedNote, setSavedNote] = useState<string | null>(null);
 
-  const days = nextDays(DAYS_AHEAD);
-  const from = days[0];
-  const to = days[days.length - 1];
+  const days = daysBetween(from, to);
 
   useEffect(() => {
     async function load() {
@@ -129,16 +128,7 @@ export default function ScheduleEditor() {
   if (error) return <p className="text-sm text-destructive">{error}</p>;
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg font-semibold">Schedule (next 7 days)</h2>
-        <Button onClick={save} disabled={saving}>
-          {saving ? "Saving..." : "Save"}
-        </Button>
-      </div>
-      {savedNote && (
-        <p className="text-sm text-muted-foreground mb-2">{savedNote}</p>
-      )}
+    <div className="space-y-4">
       <Table>
         <TableHeader>
           <TableRow>
@@ -199,6 +189,14 @@ export default function ScheduleEditor() {
           ))}
         </TableBody>
       </Table>
+      <DialogFooter className="sm:items-center">
+        {savedNote && (
+          <p className="text-sm text-muted-foreground">{savedNote}</p>
+        )}
+        <Button onClick={save} disabled={saving}>
+          {saving ? "Saving..." : "Save"}
+        </Button>
+      </DialogFooter>
     </div>
   );
 }
