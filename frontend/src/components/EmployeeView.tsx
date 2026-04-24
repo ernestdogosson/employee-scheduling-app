@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -21,20 +22,16 @@ type ScheduleEntry = {
   shift: Shift;
 };
 
-const DAYS_AHEAD = 7;
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-const SHIFT_COLORS: Record<string, string> = {
-  morning: "bg-amber-100 text-amber-900 border-amber-200",
-  afternoon: "bg-sky-100 text-sky-900 border-sky-200",
-  night: "bg-indigo-100 text-indigo-900 border-indigo-200",
+const SHIFT_DOT_COLORS: Record<string, string> = {
+  morning: "bg-amber-400",
+  afternoon: "bg-sky-400",
+  night: "bg-indigo-400",
 };
 
-function shiftColor(name: string): string {
-  return (
-    SHIFT_COLORS[name.toLowerCase()] ??
-    "bg-muted text-foreground border-border"
-  );
+function shiftDot(name: string): string {
+  return SHIFT_DOT_COLORS[name.toLowerCase()] ?? "bg-muted-foreground";
 }
 
 function startOfWeek(d: Date): Date {
@@ -68,22 +65,15 @@ function isToday(d: Date): boolean {
   );
 }
 
-function nextDays(n: number): string[] {
-  const out: string[] = [];
-  const today = new Date();
-  for (let i = 0; i < n; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
-    out.push(d.toISOString().slice(0, 10));
-  }
-  return out;
-}
-
 function makeKey(date: string, shiftId: number) {
   return `${date}|${shiftId}`;
 }
 
+type Tab = "schedule" | "availability";
+
 export default function EmployeeView() {
+  const [tab, setTab] = useState<Tab>("schedule");
+
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [me, setMe] = useState<Employee | null>(null);
   const [schedule, setSchedule] = useState<ScheduleEntry[]>([]);
@@ -101,8 +91,6 @@ export default function EmployeeView() {
 
   const from = isoDate(weekDates[0]);
   const to = isoDate(weekDates[6]);
-
-  const availDays = nextDays(DAYS_AHEAD);
 
   useEffect(() => {
     async function loadInitial() {
@@ -143,14 +131,12 @@ export default function EmployeeView() {
     loadSchedule();
   }, [from, to]);
 
-  const entryByDate = useMemo(() => {
-    const map = new Map<string, ScheduleEntry[]>();
+  const scheduleSet = useMemo(() => {
+    const set = new Set<string>();
     for (const e of schedule) {
-      const date = e.date.slice(0, 10);
-      if (!map.has(date)) map.set(date, []);
-      map.get(date)!.push(e);
+      set.add(makeKey(e.date.slice(0, 10), e.shiftId));
     }
-    return map;
+    return set;
   }, [schedule]);
 
   function toggle(date: string, shiftId: number) {
@@ -199,114 +185,176 @@ export default function EmployeeView() {
   if (!me) return <p className="text-sm text-muted-foreground">Loading...</p>;
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-2xl font-semibold">Welcome, {me.firstName}</h1>
-
-      <div className="space-y-3">
-        <h2 className="text-lg font-semibold">My schedule</h2>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setMonday(addDays(monday, -7))}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setMonday(startOfWeek(new Date()))}
-          >
-            Today
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setMonday(addDays(monday, 7))}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <span className="text-sm text-muted-foreground ml-2">
-            {rangeLabel()}
-          </span>
-        </div>
-        <div className="grid grid-cols-7 border rounded-md overflow-hidden text-sm">
-          {weekDates.map((d, i) => (
-            <div
-              key={`h-${i}`}
-              className="bg-muted/50 border-b border-r last:border-r-0 p-2 text-center"
-            >
-              <div className="font-medium">{DAY_LABELS[i]}</div>
-              <div className="text-xs">
-                {isToday(d) ? (
-                  <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground font-medium">
-                    {d.getDate()}
-                  </span>
-                ) : (
-                  <span className="text-muted-foreground">{d.getDate()}</span>
-                )}
-              </div>
-            </div>
-          ))}
-          {weekDates.map((d, i) => {
-            const date = isoDate(d);
-            const cellEntries = entryByDate.get(date) ?? [];
-            return (
-              <div
-                key={`c-${i}`}
-                className="border-r last:border-r-0 p-1 min-h-[80px] space-y-1"
-              >
-                {cellEntries.map((e) => (
-                  <div
-                    key={e.id}
-                    className={`rounded border px-1.5 py-0.5 text-xs ${shiftColor(e.shift.name)}`}
-                  >
-                    {e.shift.name}
-                  </div>
-                ))}
-              </div>
-            );
-          })}
-        </div>
+    <div className="space-y-6">
+      <div className="inline-flex rounded-md border p-1 gap-1 bg-muted/30">
+        <button
+          onClick={() => setTab("schedule")}
+          className={cn(
+            "px-4 py-1.5 text-sm rounded transition-colors",
+            tab === "schedule"
+              ? "bg-background shadow-sm font-medium"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          Schedule
+        </button>
+        <button
+          onClick={() => setTab("availability")}
+          className={cn(
+            "px-4 py-1.5 text-sm rounded transition-colors",
+            tab === "availability"
+              ? "bg-background shadow-sm font-medium"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          Availability
+        </button>
       </div>
 
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold">My availability (next 7 days)</h2>
-          <Button onClick={saveAvailability} disabled={saving}>
-            {saving ? "Saving..." : "Save"}
-          </Button>
-        </div>
-        {savedNote && (
-          <p className="text-sm text-muted-foreground mb-2">{savedNote}</p>
-        )}
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setMonday(addDays(monday, -7))}
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setMonday(startOfWeek(new Date()))}
+        >
+          Today
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setMonday(addDays(monday, 7))}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+        <span className="text-sm text-muted-foreground ml-2">
+          {rangeLabel()}
+        </span>
+      </div>
+
+      {tab === "schedule" && (
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Date</TableHead>
-              {shifts.map((s) => (
-                <TableHead key={s.id}>{s.name}</TableHead>
+              <TableHead className="w-32">Shift</TableHead>
+              {weekDates.map((d, i) => (
+                <TableHead key={i} className="text-center">
+                  <div className="font-medium">{DAY_LABELS[i]}</div>
+                  <div className="text-xs mt-0.5">
+                    {isToday(d) ? (
+                      <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground font-medium">
+                        {d.getDate()}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        {d.getDate()}
+                      </span>
+                    )}
+                  </div>
+                </TableHead>
               ))}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {availDays.map((date) => (
-              <TableRow key={date}>
-                <TableCell>{date}</TableCell>
-                {shifts.map((s) => (
-                  <TableCell key={s.id}>
-                    <input
-                      type="checkbox"
-                      checked={picked.has(makeKey(date, s.id))}
-                      onChange={() => toggle(date, s.id)}
-                    />
-                  </TableCell>
-                ))}
+            {shifts.map((s) => (
+              <TableRow key={s.id}>
+                <TableCell className="font-medium">{s.name}</TableCell>
+                {weekDates.map((d, i) => {
+                  const date = isoDate(d);
+                  const scheduled = scheduleSet.has(makeKey(date, s.id));
+                  const today = isToday(d);
+                  return (
+                    <TableCell
+                      key={i}
+                      className={cn("px-2 py-3", today && "bg-accent/40")}
+                    >
+                      {scheduled && (
+                        <div
+                          className={cn(
+                            "h-10 w-full rounded-md",
+                            shiftDot(s.name),
+                          )}
+                        />
+                      )}
+                    </TableCell>
+                  );
+                })}
               </TableRow>
             ))}
           </TableBody>
         </Table>
-      </div>
+      )}
+
+      {tab === "availability" && (
+        <>
+          <p className="text-sm text-muted-foreground">
+            Tap a shift to mark yourself available. Save when done.
+          </p>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-40">Day</TableHead>
+                {shifts.map((s) => (
+                  <TableHead key={s.id} className="text-center">
+                    {s.name}
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {weekDates.map((d, i) => {
+                const date = isoDate(d);
+                const today = isToday(d);
+                return (
+                  <TableRow key={date} className={today ? "bg-accent/40" : ""}>
+                    <TableCell>
+                      <div className="font-medium">{DAY_LABELS[i]}</div>
+                      <div className="text-muted-foreground text-xs">
+                        {d.toLocaleDateString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </div>
+                    </TableCell>
+                    {shifts.map((s) => {
+                      const key = makeKey(date, s.id);
+                      const on = picked.has(key);
+                      return (
+                        <TableCell key={s.id} className="text-center">
+                          <button
+                            onClick={() => toggle(date, s.id)}
+                            className={cn(
+                              "mx-auto h-8 w-8 rounded-full border-2 transition-colors",
+                              on
+                                ? `${shiftDot(s.name)} border-transparent`
+                                : "border-muted-foreground/30 hover:border-foreground/60",
+                            )}
+                            aria-label={`Toggle ${s.name} on ${date}`}
+                          />
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+          <div className="flex items-center justify-end gap-3">
+            {savedNote && (
+              <p className="text-sm text-muted-foreground">{savedNote}</p>
+            )}
+            <Button onClick={saveAvailability} disabled={saving}>
+              {saving ? "Saving..." : "Save"}
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
