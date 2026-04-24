@@ -191,14 +191,14 @@ export default function EmployeeView() {
   if (!me) return <p className="text-sm text-muted-foreground">Loading...</p>;
 
   return (
-    <div className="space-y-6">
-      <div className="inline-flex rounded-md border p-1 gap-1 bg-muted/30">
+    <div className="space-y-4">
+      <div className="inline-flex rounded-md border p-1 gap-1 bg-background">
         <button
           onClick={() => setTab("schedule")}
           className={cn(
             "px-4 py-1.5 text-sm rounded transition-colors",
             tab === "schedule"
-              ? "bg-background shadow-sm font-medium"
+              ? "bg-slate-900 text-white font-medium"
               : "text-muted-foreground hover:text-foreground",
           )}
         >
@@ -209,7 +209,7 @@ export default function EmployeeView() {
           className={cn(
             "px-4 py-1.5 text-sm rounded transition-colors",
             tab === "availability"
-              ? "bg-background shadow-sm font-medium"
+              ? "bg-slate-900 text-white font-medium"
               : "text-muted-foreground hover:text-foreground",
           )}
         >
@@ -217,6 +217,7 @@ export default function EmployeeView() {
         </button>
       </div>
 
+      <section className="rounded-lg border bg-card p-6 shadow-sm space-y-5">
       <div className="flex items-center gap-2">
         <Button
           variant="outline"
@@ -364,6 +365,7 @@ export default function EmployeeView() {
           </div>
         </>
       )}
+      </section>
     </div>
   );
 }

@@ -67,6 +67,10 @@ function shiftColor(name: string): string {
   );
 }
 
+function initials(first: string, last: string) {
+  return `${first[0] ?? ""}${last[0] ?? ""}`.toUpperCase();
+}
+
 export default function ScheduleGrid() {
   const [monday, setMonday] = useState<Date>(() => startOfWeek(new Date()));
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -204,8 +208,13 @@ export default function ScheduleGrid() {
 
         {employees.map((emp) => (
           <Fragment key={emp.id}>
-            <div className="border-b border-r p-2 font-medium">
-              {emp.firstName} {emp.lastName}
+            <div className="border-b border-r p-2 flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-medium flex-shrink-0">
+                {initials(emp.firstName, emp.lastName)}
+              </div>
+              <div className="font-medium truncate">
+                {emp.firstName} {emp.lastName}
+              </div>
             </div>
             {days.map((d, i) => {
               const date = isoDate(d);

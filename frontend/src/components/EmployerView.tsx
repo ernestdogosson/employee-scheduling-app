@@ -19,6 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Plus, Trash2, Users } from "lucide-react";
 import ScheduleGrid from "@/components/ScheduleGrid";
 
 type Employee = {
@@ -36,6 +37,10 @@ type EmployeesResponse = { employees: Employee[] };
 
 function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
+function initials(first: string, last: string) {
+  return `${first[0] ?? ""}${last[0] ?? ""}`.toUpperCase();
 }
 
 export default function EmployerView() {
@@ -116,13 +121,21 @@ export default function EmployerView() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-4">
+    <div className="space-y-6">
+      <section className="rounded-lg border bg-card p-6 shadow-sm space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Employees</h2>
+        <div>
+          <h2 className="text-lg font-semibold">Employees</h2>
+          <p className="text-sm text-muted-foreground">
+            {employees.length} {employees.length === 1 ? "person" : "people"}
+          </p>
+        </div>
         <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) resetForm(); }}>
           <DialogTrigger asChild>
-            <Button>Add employee</Button>
+            <Button>
+              <Plus className="h-4 w-4 mr-1" />
+              Add employee
+            </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -173,36 +186,57 @@ export default function EmployerView() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>First name</TableHead>
-            <TableHead>Last name</TableHead>
+            <TableHead>Employee</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Login code</TableHead>
             <TableHead>Phone</TableHead>
-            <TableHead></TableHead>
+            <TableHead className="w-10"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {employees.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-muted-foreground text-center">
-                No employees yet
+              <TableCell colSpan={5} className="py-10">
+                <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                  <Users className="h-10 w-10 opacity-30" />
+                  <p className="text-sm">No employees yet</p>
+                  <p className="text-xs">
+                    Click "Add employee" to get started
+                  </p>
+                </div>
               </TableCell>
             </TableRow>
           ) : (
             employees.map((emp) => (
               <TableRow key={emp.id}>
-                <TableCell>{emp.firstName}</TableCell>
-                <TableCell>{emp.lastName}</TableCell>
-                <TableCell>{emp.user.email}</TableCell>
-                <TableCell>{emp.user.loginCode}</TableCell>
-                <TableCell>{emp.phone ?? "—"}</TableCell>
                 <TableCell>
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-sm font-medium">
+                      {initials(emp.firstName, emp.lastName)}
+                    </div>
+                    <div className="font-medium">
+                      {emp.firstName} {emp.lastName}
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {emp.user.email}
+                </TableCell>
+                <TableCell className="font-mono text-muted-foreground">
+                  {emp.user.loginCode}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {emp.phone ?? "—"}
+                </TableCell>
+                <TableCell className="text-right">
                   <Button
-                    variant="destructive"
-                    size="sm"
+                    variant="ghost"
+                    size="icon"
                     onClick={() => handleDelete(emp)}
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    aria-label="Delete employee"
                   >
-                    Delete
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </TableCell>
               </TableRow>
@@ -210,9 +244,11 @@ export default function EmployerView() {
           )}
         </TableBody>
       </Table>
-      </div>
+      </section>
 
-      <ScheduleGrid key={scheduleVersion} />
+      <section className="rounded-lg border bg-card p-6 shadow-sm">
+        <ScheduleGrid key={scheduleVersion} />
+      </section>
     </div>
   );
 }
