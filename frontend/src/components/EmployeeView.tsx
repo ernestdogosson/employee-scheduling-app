@@ -59,6 +59,15 @@ function isoDate(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+function isToday(d: Date): boolean {
+  const today = new Date();
+  return (
+    d.getFullYear() === today.getFullYear() &&
+    d.getMonth() === today.getMonth() &&
+    d.getDate() === today.getDate()
+  );
+}
+
 function nextDays(n: number): string[] {
   const out: string[] = [];
   const today = new Date();
@@ -191,6 +200,8 @@ export default function EmployeeView() {
 
   return (
     <div className="space-y-8">
+      <h1 className="text-2xl font-semibold">Welcome, {me.firstName}</h1>
+
       <div className="space-y-3">
         <h2 className="text-lg font-semibold">My schedule</h2>
         <div className="flex items-center gap-2">
@@ -226,7 +237,15 @@ export default function EmployeeView() {
               className="bg-muted/50 border-b border-r last:border-r-0 p-2 text-center"
             >
               <div className="font-medium">{DAY_LABELS[i]}</div>
-              <div className="text-muted-foreground text-xs">{d.getDate()}</div>
+              <div className="text-xs">
+                {isToday(d) ? (
+                  <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground font-medium">
+                    {d.getDate()}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">{d.getDate()}</span>
+                )}
+              </div>
             </div>
           ))}
           {weekDates.map((d, i) => {

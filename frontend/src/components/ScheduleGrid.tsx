@@ -43,6 +43,15 @@ function isoDate(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+function isToday(d: Date): boolean {
+  const today = new Date();
+  return (
+    d.getFullYear() === today.getFullYear() &&
+    d.getMonth() === today.getMonth() &&
+    d.getDate() === today.getDate()
+  );
+}
+
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const SHIFT_COLORS: Record<string, string> = {
@@ -175,7 +184,15 @@ export default function ScheduleGrid() {
             className="bg-muted/50 border-b border-r last:border-r-0 p-2 text-center"
           >
             <div className="font-medium">{DAY_LABELS[i]}</div>
-            <div className="text-muted-foreground text-xs">{d.getDate()}</div>
+            <div className="text-xs">
+              {isToday(d) ? (
+                <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground font-medium">
+                  {d.getDate()}
+                </span>
+              ) : (
+                <span className="text-muted-foreground">{d.getDate()}</span>
+              )}
+            </div>
           </div>
         ))}
 
