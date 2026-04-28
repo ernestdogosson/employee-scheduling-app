@@ -48,6 +48,7 @@ export default function EmployerView() {
   const [listError, setListError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [scheduleVersion, setScheduleVersion] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // create form
   const [firstName, setFirstName] = useState("");
@@ -58,19 +59,24 @@ export default function EmployerView() {
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  async function loadEmployees() {
-    try {
-      const data = await api.get<EmployeesResponse>("/employees");
-      setEmployees(data.employees);
-      setListError(null);
-    } catch (err) {
-      setListError(err instanceof Error ? err.message : "Failed to load");
-    }
-  }
-
   useEffect(() => {
-    loadEmployees();
-  }, []);
+    let cancelled = false;
+    async function load() {
+      try {
+        const data = await api.get<EmployeesResponse>("/employees");
+        if (cancelled) return;
+        setEmployees(data.employees);
+        setListError(null);
+      } catch (err) {
+        if (cancelled) return;
+        setListError(err instanceof Error ? err.message : "Failed to load");
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshKey]);
 
   function resetForm() {
     setFirstName("");
@@ -87,7 +93,7 @@ export default function EmployerView() {
     }
     try {
       await api.delete(`/employees/${emp.id}`);
-      await loadEmployees();
+      setRefreshKey((k) => k + 1);
       setScheduleVersion((v) => v + 1);
     } catch (err) {
       setListError(err instanceof Error ? err.message : "Delete failed");
@@ -108,7 +114,7 @@ export default function EmployerView() {
       });
       resetForm();
       setOpen(false);
-      await loadEmployees();
+      setRefreshKey((k) => k + 1);
     } catch (err) {
       if (err instanceof ApiError) {
         setFormError(err.message);

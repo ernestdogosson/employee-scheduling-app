@@ -1,15 +1,15 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
-import { api } from "@/lib/api";
-import { Button } from "@/components/ui/button";
+import { Fragment, useEffect, useMemo, useState } from 'react';
+import { api } from '@/lib/api';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import ScheduleEditor from "@/components/ScheduleEditor";
+} from '@/components/ui/dialog';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import ScheduleEditor from '@/components/ScheduleEditor';
 
 type Shift = { id: number; name: string };
 type Employee = { id: number; firstName: string; lastName: string };
@@ -38,8 +38,8 @@ function addDays(d: Date, n: number): Date {
 
 function isoDate(d: Date): string {
   const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
 
@@ -52,23 +52,20 @@ function isToday(d: Date): boolean {
   );
 }
 
-const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 const SHIFT_COLORS: Record<string, string> = {
-  morning: "bg-amber-100 text-amber-900 border-amber-200",
-  afternoon: "bg-sky-100 text-sky-900 border-sky-200",
-  night: "bg-indigo-100 text-indigo-900 border-indigo-200",
+  morning: 'bg-amber-100 text-amber-900 border-amber-200',
+  afternoon: 'bg-sky-100 text-sky-900 border-sky-200',
+  night: 'bg-indigo-100 text-indigo-900 border-indigo-200',
 };
 
 function shiftColor(name: string): string {
-  return (
-    SHIFT_COLORS[name.toLowerCase()] ??
-    "bg-muted text-foreground border-border"
-  );
+  return SHIFT_COLORS[name.toLowerCase()] ?? 'bg-muted text-foreground border-border';
 }
 
 function initials(first: string, last: string) {
-  return `${first[0] ?? ""}${last[0] ?? ""}`.toUpperCase();
+  return `${first[0] ?? ''}${last[0] ?? ''}`.toUpperCase();
 }
 
 export default function ScheduleGrid() {
@@ -77,34 +74,35 @@ export default function ScheduleGrid() {
   const [entries, setEntries] = useState<ScheduleEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const days = useMemo(
-    () => Array.from({ length: 7 }, (_, i) => addDays(monday, i)),
-    [monday],
-  );
+  const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(monday, i)), [monday]);
 
   const from = isoDate(days[0]);
   const to = isoDate(days[6]);
 
-  async function load() {
-    try {
-      const [empData, schedData] = await Promise.all([
-        api.get<{ employees: Employee[] }>("/employees"),
-        api.get<{ entries: ScheduleEntry[] }>(
-          `/schedule?from=${from}&to=${to}`,
-        ),
-      ]);
-      setEmployees(empData.employees);
-      setEntries(schedData.entries);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load");
-    }
-  }
-
   useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const [empData, schedData] = await Promise.all([
+          api.get<{ employees: Employee[] }>('/employees'),
+          api.get<{ entries: ScheduleEntry[] }>(`/schedule?from=${from}&to=${to}`),
+        ]);
+        if (cancelled) return;
+        setEmployees(empData.employees);
+        setEntries(schedData.entries);
+        setError(null);
+      } catch (err) {
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : 'Failed to load');
+      }
+    }
     load();
-  }, [from, to]);
+    return () => {
+      cancelled = true;
+    };
+  }, [from, to, refreshKey]);
 
   const entryMap = useMemo(() => {
     const map = new Map<string, ScheduleEntry[]>();
@@ -119,12 +117,12 @@ export default function ScheduleGrid() {
 
   function rangeLabel() {
     const startLabel = days[0].toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
+      month: 'short',
+      day: 'numeric',
     });
     const endLabel = days[6].toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
+      month: 'short',
+      day: 'numeric',
     });
     return `${startLabel} – ${endLabel}`;
   }
@@ -133,43 +131,29 @@ export default function ScheduleGrid() {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setMonday(addDays(monday, -7))}
-          >
+          <Button variant="outline" size="sm" onClick={() => setMonday(addDays(monday, -7))}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setMonday(startOfWeek(new Date()))}
-          >
+          <Button variant="outline" size="sm" onClick={() => setMonday(startOfWeek(new Date()))}>
             Today
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setMonday(addDays(monday, 7))}
-          >
+          <Button variant="outline" size="sm" onClick={() => setMonday(addDays(monday, 7))}>
             <ChevronRight className="h-4 w-4" />
           </Button>
-          <span className="text-sm text-muted-foreground ml-2">
-            {rangeLabel()}
-          </span>
+          <span className="text-sm text-muted-foreground ml-2">{rangeLabel()}</span>
         </div>
 
         <Dialog
           open={editOpen}
           onOpenChange={(open) => {
             setEditOpen(open);
-            if (!open) load();
+            if (!open) setRefreshKey((k) => k + 1);
           }}
         >
           <DialogTrigger asChild>
             <Button>Edit schedule</Button>
           </DialogTrigger>
-          <DialogContent className="max-w-6xl w-[95vw]">
+          <DialogContent className="max-w-350 sm:max-w-350 w-[95vw]">
             <DialogHeader>
               <DialogTitle>Edit schedule</DialogTitle>
             </DialogHeader>
@@ -183,10 +167,7 @@ export default function ScheduleGrid() {
       <div className="grid grid-cols-[160px_repeat(7,minmax(0,1fr))] border rounded-md overflow-hidden text-sm">
         <div className="bg-muted/50 border-b border-r p-2"></div>
         {days.map((d, i) => (
-          <div
-            key={i}
-            className="bg-muted/50 border-b border-r last:border-r-0 p-2 text-center"
-          >
+          <div key={i} className="bg-muted/50 border-b border-r last:border-r-0 p-2 text-center">
             <div className="font-medium">{DAY_LABELS[i]}</div>
             <div className="text-xs">
               {isToday(d) ? (
@@ -201,15 +182,13 @@ export default function ScheduleGrid() {
         ))}
 
         {employees.length === 0 && (
-          <div className="col-span-8 p-4 text-center text-muted-foreground">
-            No employees yet
-          </div>
+          <div className="col-span-8 p-4 text-center text-muted-foreground">No employees yet</div>
         )}
 
         {employees.map((emp) => (
           <Fragment key={emp.id}>
             <div className="border-b border-r p-2 flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-medium flex-shrink-0">
+              <div className="h-8 w-8 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-medium shrink-0">
                 {initials(emp.firstName, emp.lastName)}
               </div>
               <div className="font-medium truncate">
@@ -222,7 +201,7 @@ export default function ScheduleGrid() {
               return (
                 <div
                   key={i}
-                  className="border-b border-r last:border-r-0 p-1 min-h-[60px] space-y-1"
+                  className="border-b border-r last:border-r-0 p-1 min-h-15 space-y-1"
                 >
                   {cellEntries.map((e) => (
                     <div
