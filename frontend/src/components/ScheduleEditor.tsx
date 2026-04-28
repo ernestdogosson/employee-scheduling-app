@@ -43,12 +43,26 @@ function makeKey(date: string, shiftId: number) {
   return `${date}|${shiftId}`;
 }
 
+const SHIFT_COLORS: Record<string, string> = {
+  morning: "bg-amber-100 text-amber-900 border-amber-300",
+  afternoon: "bg-sky-100 text-sky-900 border-sky-300",
+  night: "bg-indigo-100 text-indigo-900 border-indigo-300",
+};
+
+function shiftColor(name: string): string {
+  return (
+    SHIFT_COLORS[name.toLowerCase()] ??
+    "bg-muted text-foreground border-border"
+  );
+}
+
 type Props = { from: string; to: string };
 
 export default function ScheduleEditor({ from, to }: Props) {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [assignments, setAssignments] = useState<Map<string, Set<number>>>(new Map());
+  const [availSet, setAvailSet] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [savedNote, setSavedNote] = useState<string | null>(null);
@@ -75,6 +89,23 @@ export default function ScheduleEditor({ from, to }: Props) {
           initial.get(key)!.add(e.employeeId);
         }
         setAssignments(initial);
+
+        // fetch availability per employee
+        const availResponses = await Promise.all(
+          employeesData.employees.map((emp) =>
+            api.get<{ availabilities: { date: string; shiftId: number }[] }>(
+              `/availability/${emp.id}?from=${from}&to=${to}`,
+            ),
+          ),
+        );
+        const availSet = new Set<string>();
+        availResponses.forEach((res, i) => {
+          const empId = employeesData.employees[i].id;
+          for (const a of res.availabilities) {
+            availSet.add(`${a.date.slice(0, 10)}|${a.shiftId}|${empId}`);
+          }
+        });
+        setAvailSet(availSet);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load");
       }
@@ -128,15 +159,10 @@ export default function ScheduleEditor({ from, to }: Props) {
     }
   }
 
-  function nameOf(employeeId: number) {
-    const e = employees.find((x) => x.id === employeeId);
-    return e ? `${e.firstName} ${e.lastName}` : `#${employeeId}`;
-  }
-
   if (error) return <p className="text-sm text-destructive">{error}</p>;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 min-w-0">
       <Table>
         <TableHeader>
           <TableRow>
@@ -152,47 +178,74 @@ export default function ScheduleEditor({ from, to }: Props) {
               <TableCell className="font-medium">{shift.name}</TableCell>
               {days.map((date) => {
                 const assigned = assignments.get(makeKey(date, shift.id)) ?? new Set<number>();
-                const available = employees.filter((e) => !assigned.has(e.id));
                 const past = isPastISO(date);
                 return (
-                  <TableCell key={date} className="align-top">
-                    <div className="flex flex-wrap gap-1 mb-1">
-                      {Array.from(assigned).map((empId) => (
-                        <span
-                          key={empId}
-                          className="inline-flex items-center gap-1 rounded bg-muted px-2 py-0.5 text-xs"
-                        >
-                          {nameOf(empId)}
-                          {!past && (
-                            <button
-                              type="button"
-                              onClick={() => removeEmployee(date, shift.id, empId)}
-                              className="text-muted-foreground hover:text-foreground"
-                              aria-label="Remove"
+                  <TableCell
+                    key={date}
+                    className={`align-top ${past ? "bg-muted/30" : ""}`}
+                  >
+                    <div className="flex flex-wrap gap-1">
+                      {employees.map((emp) => {
+                        const isAssigned = assigned.has(emp.id);
+                        const isAvail = availSet.has(
+                          `${date}|${shift.id}|${emp.id}`,
+                        );
+
+                        // past = read-only history
+                        if (past) {
+                          if (!isAssigned) return null;
+                          return (
+                            <span
+                              key={emp.id}
+                              className="inline-flex items-center rounded border border-border bg-muted/60 text-muted-foreground px-2 py-0.5 text-xs"
                             >
-                              ×
-                            </button>
-                          )}
-                        </span>
-                      ))}
-                    </div>
-                    {available.length > 0 && !past && (
-                      <select
-                        className="text-xs border rounded px-1 py-0.5 bg-background"
-                        value=""
-                        onChange={(e) => {
-                          const id = Number(e.target.value);
-                          if (id) addEmployee(date, shift.id, id);
-                        }}
-                      >
-                        <option value="">+ Add</option>
-                        {available.map((emp) => (
-                          <option key={emp.id} value={emp.id}>
+                              {emp.firstName} {emp.lastName}
+                            </span>
+                          );
+                        }
+
+                        const base =
+                          "inline-flex items-center rounded border px-2 py-0.5 text-xs cursor-pointer transition";
+                        let cls = base;
+                        let title = "";
+                        if (isAssigned) {
+                          cls += " " + shiftColor(shift.name);
+                          if (!isAvail) {
+                            cls += " ring-2 ring-rose-300";
+                            title = "Assigned but not marked available";
+                          }
+                        } else if (isAvail) {
+                          cls +=
+                            " border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100";
+                          title = "Available";
+                        } else {
+                          cls +=
+                            " border-dashed border-muted-foreground/40 bg-muted/40 text-muted-foreground hover:bg-muted";
+                          title = "Not marked available";
+                        }
+
+                        return (
+                          <button
+                            key={emp.id}
+                            type="button"
+                            className={cls}
+                            title={title}
+                            onClick={() =>
+                              isAssigned
+                                ? removeEmployee(date, shift.id, emp.id)
+                                : addEmployee(date, shift.id, emp.id)
+                            }
+                          >
                             {emp.firstName} {emp.lastName}
-                          </option>
-                        ))}
-                      </select>
-                    )}
+                          </button>
+                        );
+                      })}
+                      {employees.length === 0 && (
+                        <span className="text-xs text-muted-foreground">
+                          No employees
+                        </span>
+                      )}
+                    </div>
                   </TableCell>
                 );
               })}
